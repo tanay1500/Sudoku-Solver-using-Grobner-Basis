@@ -3,6 +3,29 @@ from sympy import symbols, groebner, solve
 import copy
 
 
+def red(gb):
+    # Minimal Gröbner basis
+    temp = copy.deepcopy(gb)
+    temp = temp.polys
+    G_minimal = []
+    while temp:
+        f0 = temp.pop()
+        if not any(sp.polys.monomials.monomial_divides(f.LM(), f0.LM()) for f in temp + G_minimal):
+            G_minimal.append(f0)
+
+    # reduce
+    G_reduced = []
+    for i, g in enumerate(G_minimal):
+        try:
+            _, remainder = sp.reduced(g, G_reduced[:i] + G_minimal[i+1:])
+            if remainder != 0:
+                G_reduced.append(remainder)
+        except:
+            print("No solutions found")
+            return
+    
+    return G_reduced
+
 def solve_sudoku(sudoku):
     variables = symbols('a1:5 b1:5 c1:5 d1:5')
 
@@ -39,15 +62,13 @@ def solve_sudoku(sudoku):
             if i % 2 == 0 and j % 2 == 0:
                 equations.append(variables[i * 4 + j] * variables[i * 4 + j + 1] * variables[(i + 1) * 4 + j] * variables[(i + 1) * 4 + j + 1] - 24)
     
-    if sudoku == [
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0]
-]:
-        gb_without_initial_conditions = groebner(equations,variables)
-        print(gb_without_initial_conditions)
-        return    
+    gb_without_initial_conditions = groebner(equations,variables)
+    red_grobner = red(gb_without_initial_conditions)
+    print("Reduced Gröbner basis without initial values:")
+    for i,g in enumerate(red_grobner):
+        print("|||")
+        print(i+1)
+        print(g)
 
     #initial conditions
     for i in range(4):
@@ -62,28 +83,10 @@ def solve_sudoku(sudoku):
     # print(gb)
     # print(len(gb))
 
-    # Minimal Gröbner basis
-    temp = copy.deepcopy(gb)
-    temp = temp.polys
-    G_minimal = []
-    while temp:
-        f0 = temp.pop()
-        if not any(sp.polys.monomials.monomial_divides(f.LM(), f0.LM()) for f in temp + G_minimal):
-            G_minimal.append(f0)
-
-    # reduce
-    G_reduced = []
-    for i, g in enumerate(G_minimal):
-        try:
-            _, remainder = sp.reduced(g, G_reduced[:i] + G_minimal[i+1:])
-            if remainder != 0:
-                G_reduced.append(remainder)
-        except:
-            print("No solutions found")
-            return
         
     # print(G_reduced)
     try:
+        G_reduced = red(gb)
         solutions = []
         #getting solution from G_reduced
         for g in G_reduced:
