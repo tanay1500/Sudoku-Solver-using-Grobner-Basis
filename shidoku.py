@@ -108,6 +108,7 @@ def solve_sudoku(sudoku):
             temppp.append(tempp[::-1])
             tempp = []
         
+        print("Soltion:")
         for i in range(len(temppp)-1,-1,-1):
             print(temppp[i])
     except:
